@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- finial -->
+    <path
+        android:pathData="M242,138 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:fillColor="#F2CF7E" />
+
+    <!-- beam -->
+    <group android:strokeColor="#F2CF7E" android:strokeWidth="16" android:strokeLineCap="round" android:strokeLineJoin="round">
+        <path android:pathData="M150,178 Q256,156 362,178" />
+    </group>
+
+    <!-- central post -->
+    <group android:strokeColor="#F2CF7E" android:strokeWidth="18" android:strokeLineCap="round">
+        <path android:pathData="M256,178 L256,354" />
+    </group>
+
+    <!-- cords -->
+    <group android:strokeColor="#F2CF7E" android:strokeWidth="5" android:strokeLineCap="round">
+        <path android:pathData="M156,180 L156,250" />
+        <path android:pathData="M356,180 L356,250" />
+    </group>
+
+    <!-- pans -->
+    <path android:pathData="M116,252 L196,252 Q156,292 116,252 Z" android:fillColor="#F2CF7E" />
+    <path android:pathData="M316,252 L396,252 Q356,292 316,252 Z" android:fillColor="#F2CF7E" />
+    <group android:strokeColor="#F6D888" android:strokeWidth="8" android:strokeLineCap="round">
+        <path android:pathData="M110,250 L202,250" />
+        <path android:pathData="M310,250 L402,250" />
+    </group>
+
+    <!-- base -->
+    <path android:pathData="M206,354 L306,354 L306,370 L206,370 Z" android:fillColor="#F2CF7E" />
+    <path android:pathData="M186,374 L326,374 L326,389 L186,389 Z" android:fillColor="#F2CF7E" />
+</vector>

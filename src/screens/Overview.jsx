@@ -2,7 +2,7 @@ import React from 'react'
 import {
   Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingDown, PiggyBank,
   ReceiptText, CalendarDays, Zap, Wifi, Smartphone, Home, HandCoins,
-  CreditCard, Bell, ChevronLeft, Check,
+  CreditCard, Bell, ChevronLeft, Check, Pencil,
 } from 'lucide-react'
 import { Card, SectionHeader, Pill, ProgressBar, ProgressRing, EmptyState } from '../components/UI'
 import { DonutChart, Sparkline } from '../components/Charts'
@@ -73,9 +73,14 @@ export default function Overview({
           <h1>{t('nav.overview')}</h1>
           <p>{t('header.cycle', { start: formatDate(cycle.start, lang), end: formatDate(cycle.end, lang) })}</p>
         </div>
-        <button className="btn primary" onClick={() => onOpenModal('expense')}>
-          <Plus size={17} /> {t('actions.addExpense')}
-        </button>
+        <div className="page-head-actions">
+          <button className="btn ghost" onClick={() => onOpenModal('income')}>
+            <ArrowDownRight size={17} /> {t('actions.addIncome')}
+          </button>
+          <button className="btn primary" onClick={() => onOpenModal('expense')}>
+            <Plus size={17} /> {t('actions.addExpense')}
+          </button>
+        </div>
       </div>
 
       <div className="grid">
@@ -112,6 +117,9 @@ export default function Overview({
                 <span className="wallet-icon"><Wallet size={17} /></span>
                 <span className="wallet-name">{cur === 'SYP' ? t('currency.nameSYP') : t('currency.nameUSD')}</span>
                 <Pill tone={cur === 'SYP' ? 'mint' : 'gold'}>{cur}</Pill>
+                <button className="wallet-edit" onClick={() => onOpenModal('wallet', { currency: cur, base: s.base, carry: s.carry })} aria-label={t('actions.edit')}>
+                  <Pencil size={13} />
+                </button>
               </div>
               <div className="wallet-balance-label">{t('overview.walletBalance')}</div>
               <div className="wallet-balance num">{money(s.remaining, cur)}</div>
@@ -159,6 +167,7 @@ export default function Overview({
             </div>
           )}
           <div className="bill-mini-list">
+            {upcoming.length === 0 && <EmptyState text={t('bills.empty')} />}
             {upcoming.map((b) => {
               const Icon = BILL_ICONS[b.icon] || ReceiptText
               const days = daysBetween(b.dueDate, TODAY)
@@ -181,6 +190,7 @@ export default function Overview({
         <Card className="col-7">
           <SectionHeader title={t('overview.goals')} icon={PiggyBank} action={t('actions.viewAll')} onAction={() => onNavigate('savings')} />
           <div className="goal-mini-grid">
+            {goals.length === 0 && <EmptyState text={t('savings.empty')} />}
             {goals.slice(0, 2).map((g) => {
               const pct = g.target ? Math.min(100, (g.saved / g.target) * 100) : 0
               return (
@@ -204,6 +214,7 @@ export default function Overview({
         <Card className="col-5">
           <SectionHeader title={t('overview.recent')} icon={ArrowUpRight} action={t('actions.viewAll')} onAction={() => onNavigate('expenses')} />
           <div className="tx-list compact">
+            {recent.length === 0 && <EmptyState text={t('overview.noData')} />}
             {recent.map((x) => {
               const isIncome = x.type === 'income'
               const isSaving = x.type === 'savings'

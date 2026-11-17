@@ -59,7 +59,7 @@ export async function loadCachedRate() {
   return { rate: EXCHANGE_RATE, source: 'default', updatedAt: null, offline: true }
 }
 
-/** يحفظ سعراً أدخله المستخدم يدوياً (مثلاً سعر السوق المحلي) */
+/** يحفظ سعراً أدخله المستخدم يدوياً (مثال: سعر السوق المحلي) */
 export async function saveManualRate(rate) {
   if (!plausible(rate)) return null
   const value = Number(rate)

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="ميزان">
+  <defs>
+    <linearGradient id="mz-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#155844"/>
+      <stop offset="1" stop-color="#082d24"/>
+    </linearGradient>
+    <linearGradient id="mz-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d888"/>
+      <stop offset="0.55" stop-color="#dcae54"/>
+      <stop offset="1" stop-color="#b87f27"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#mz-bg)"/>
+  <rect x="34" y="34" width="444" height="444" rx="98" fill="none" stroke="#f6d888" stroke-opacity="0.16" stroke-width="2"/>
+
+  <g fill="none" stroke="url(#mz-gold)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- finial -->
+    <circle cx="256" cy="138" r="14" fill="url(#mz-gold)" stroke="none"/>
+    <!-- beam -->
+    <path d="M 150 178 Q 256 156 362 178" stroke-width="16"/>
+    <!-- central post -->
+    <path d="M 256 178 L 256 354" stroke-width="18"/>
+    <!-- cords -->
+    <path d="M 156 180 L 156 250" stroke-width="5"/>
+    <path d="M 356 180 L 356 250" stroke-width="5"/>
+  </g>
+
+  <!-- pans -->
+  <path d="M 116 252 L 196 252 Q 156 292 116 252 Z" fill="url(#mz-gold)"/>
+  <path d="M 110 250 L 202 250" stroke="#f6d888" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M 316 252 L 396 252 Q 356 292 316 252 Z" fill="url(#mz-gold)"/>
+  <path d="M 310 250 L 402 250" stroke="#f6d888" stroke-width="8" stroke-linecap="round" fill="none"/>
+
+  <!-- base -->
+  <rect x="206" y="354" width="100" height="16" rx="8" fill="url(#mz-gold)"/>
+  <rect x="186" y="374" width="140" height="14" rx="7" fill="url(#mz-gold)"/>
+</svg>

@@ -2,18 +2,19 @@ import React from 'react'
 import {
   LayoutDashboard, ReceiptText, PiggyBank, CalendarDays, Bell,
   Sun, Moon, Languages, RotateCcw, Wallet, Check, Sparkles, Menu, X,
-  ArrowUpRight, ArrowDownRight, Settings2, Info, Download, Upload, CalendarRange, RefreshCw,
+  ArrowUpRight, ArrowDownRight, Settings2, Info, Download, Upload, CalendarRange, RefreshCw, UserRound,
 } from 'lucide-react'
 import {
   Card, Pill, Segmented, Field, Modal, Toast, IconButton,
 } from './components/UI'
+import BootMark from './components/BootMark'
 import Overview from './screens/Overview'
 import Expenses from './screens/Expenses'
 import Savings from './screens/Savings'
 import Bills from './screens/Bills'
-import { translate } from './i18n'
+import { translate, dict } from './i18n'
 import {
-  TODAY, EXCHANGE_RATE as DEFAULT_RATE, SALARY_DAY, USER,
+  TODAY, EXCHANGE_RATE as DEFAULT_RATE, SALARY_DAY,
   initialWallets, initialTransactions, initialGoals, initialGeneralSavings, initialBills,
 } from './data'
 import {
@@ -42,6 +43,7 @@ const MODAL_TITLES = {
   bill: 'modal.billTitle',
   debt: 'modal.debtTitle',
   goal: 'modal.goalTitle',
+  wallet: 'modal.walletTitle',
 }
 
 const INITIAL_FORM = {
@@ -55,6 +57,8 @@ const INITIAL_FORM = {
   dueDate: TODAY,
   recurring: true,
   icon: 'target',
+  base: '',
+  carry: '',
 }
 
 function FormModal({ type, prefill, goals, generalSavings, t, lang, rate, onClose, onSubmit }) {
@@ -63,7 +67,8 @@ function FormModal({ type, prefill, goals, generalSavings, t, lang, rate, onClos
   const isSavings = type === 'deposit' || type === 'withdraw'
   const isBill = type === 'bill' || type === 'debt'
   const isGoal = type === 'goal'
-  const showLabel = type === 'expense' || type === 'income'
+  const isWallet = type === 'wallet'
+  const showLabel = type === 'expense'
 
   const submit = (e) => {
     e.preventDefault()
@@ -79,22 +84,35 @@ function FormModal({ type, prefill, goals, generalSavings, t, lang, rate, onClos
         <>
           <button type="button" className="btn ghost" onClick={onClose}>{t('actions.cancel')}</button>
           <button type="submit" form="mizan-form" className="btn primary">
-            <Check size={16} /> {t('modal.submit')}
+            <Check size={16} /> {isWallet ? t('actions.save') : t('modal.submit')}
           </button>
         </>
       }
     >
       <form id="mizan-form" className="form-grid" onSubmit={submit}>
-        <Field label={t('modal.amount')}>
-          <div className="amount-input">
-            <input
-              type="number" min="0" step={form.currency === 'USD' ? '0.01' : '100'}
-              value={form.amount} onChange={(e) => set('amount', e.target.value)}
-              placeholder="0" autoFocus required
-            />
-            <span className="amount-currency">{form.currency === 'USD' ? '$' : (lang === 'ar' ? 'ل.س' : 'SYP')}</span>
-          </div>
-        </Field>
+        {!isWallet && (
+          <Field label={t('modal.amount')}>
+            <div className="amount-input">
+              <input
+                type="number" min="0" step={form.currency === 'USD' ? '0.01' : '100'}
+                value={form.amount} onChange={(e) => set('amount', e.target.value)}
+                placeholder="0" autoFocus required
+              />
+              <span className="amount-currency">{form.currency === 'USD' ? '$' : (lang === 'ar' ? 'ل.س' : 'SYP')}</span>
+            </div>
+          </Field>
+        )}
+
+        {isWallet && (
+          <>
+            <Field label={t('overview.baseAmount')}>
+              <input type="number" min="0" step={form.currency === 'USD' ? '0.01' : '100'} value={form.base} onChange={(e) => set('base', e.target.value)} placeholder="0" autoFocus required />
+            </Field>
+            <Field label={t('overview.carryOver')}>
+              <input type="number" min="0" step={form.currency === 'USD' ? '0.01' : '100'} value={form.carry} onChange={(e) => set('carry', e.target.value)} placeholder="0" required />
+            </Field>
+          </>
+        )}
 
         <Field label={t('modal.wallet')}>
           <Segmented
@@ -164,7 +182,7 @@ function FormModal({ type, prefill, goals, generalSavings, t, lang, rate, onClos
             <Field label={t('savings.goals')}>
               <select value={form.icon} onChange={(e) => set('icon', e.target.value)}>
                 <option value="target">{lang === 'ar' ? 'هدف عام' : 'General goal'}</option>
-                <option value="laptop">{lang === 'ar' ? 'لابتوب' : 'Laptop'}</option>
+                <option value="laptop">{lang === 'ar' ? 'حاسوب محمول' : 'Laptop'}</option>
                 <option value="plane">{lang === 'ar' ? 'رحلة' : 'Trip'}</option>
                 <option value="shield">{lang === 'ar' ? 'صندوق طوارئ' : 'Emergency fund'}</option>
               </select>
@@ -196,6 +214,7 @@ export default function App() {
   const [generalSavings, setGeneralSavings] = React.useState(initialGeneralSavings)
   const [bills, setBills] = React.useState(initialBills)
 
+  const [userName, setUserName] = React.useState('')
   const [lang, setLang] = React.useState('ar')
   const [theme, setTheme] = React.useState('light')
   const [displayCurrency, setDisplayCurrency] = React.useState('SYP')
@@ -206,6 +225,7 @@ export default function App() {
     isNotificationSupported() ? 'prompt' : 'unsupported',
   )
   const [hydrated, setHydrated] = React.useState(false)
+  const [introDone, setIntroDone] = React.useState(false)
   const [tab, setTab] = React.useState('overview')
   const [modal, setModal] = React.useState(null)
   const [prefill, setPrefill] = React.useState(null)
@@ -231,6 +251,7 @@ export default function App() {
           if (saved.theme) setTheme(saved.theme)
           if (saved.displayCurrency) setDisplayCurrency(saved.displayCurrency)
           if (saved.salaryDay) setSalaryDay(saved.salaryDay)
+          if (saved.userName) setUserName(saved.userName)
           if (Number(saved.exchangeRate) > 0) setExchangeRate(Number(saved.exchangeRate))
           if (saved.rateMeta?.source) setRateMeta(saved.rateMeta)
         } else {
@@ -244,6 +265,14 @@ export default function App() {
       })
     return () => { active = false }
   }, [])
+
+  // مشهد الافتتاح: نُبقي شاشة الشعار حتى تنتهي حركة تكوّنه ثم نظهر التطبيق
+  React.useEffect(() => {
+    if (!hydrated) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const timer = setTimeout(() => setIntroDone(true), reduced ? 600 : 4400)
+    return () => clearTimeout(timer)
+  }, [hydrated])
 
   // تحديث سعر الصرف من الشبكة عند الإقلاع (مع الرجوع لآخر سعر محفوظ عند الفشل)
   React.useEffect(() => {
@@ -268,15 +297,28 @@ export default function App() {
     if (!hydrated) return
     saveState({
       wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay,
-      exchangeRate, rateMeta,
+      userName, exchangeRate, rateMeta,
     })
-  }, [hydrated, wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay, exchangeRate, rateMeta])
+  }, [hydrated, wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay, userName, exchangeRate, rateMeta])
 
   // إعادة جدولة تنبيهات الفواتير والديون عند أي تغيير
   React.useEffect(() => {
     if (!hydrated) return
     scheduleBillReminders(bills, t, lang)
   }, [hydrated, bills, t, lang])
+
+  // القائمة الجانبية على الموبايل: إغلاق بـ Escape ومنع تمرير الخلفية
+  React.useEffect(() => {
+    if (!mobileMenu) return
+    const onKey = (e) => { if (e.key === 'Escape') setMobileMenu(false) }
+    document.addEventListener('keydown', onKey)
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previous
+    }
+  }, [mobileMenu])
 
   const cycle = React.useMemo(() => cycleFor(TODAY, salaryDay), [salaryDay])
   const cycleTransactions = React.useMemo(
@@ -369,10 +411,11 @@ export default function App() {
 
   const addIncome = (f) => {
     const amount = Number(f.amount)
-    if (!amount || amount <= 0 || !f.label.trim()) { notify(t('toast.invalid')); return }
+    if (!amount || amount <= 0) { notify(t('toast.invalid')); return }
     setTransactions((prev) => [...prev, {
       id: uid('t'), type: 'income', amount, currency: f.currency,
-      label: f.label.trim(), labelEn: f.label.trim(), date: f.date || TODAY,
+      label: dict.ar.overview.extraIncome, labelEn: dict.en.overview.extraIncome,
+      date: f.date || TODAY,
     }])
     notify(t('toast.incomeAdded'))
     closeModal()
@@ -457,8 +500,17 @@ export default function App() {
     closeModal()
   }
 
+  const saveWallet = (f) => {
+    const base = Math.max(0, Number(f.base) || 0)
+    const carry = Math.max(0, Number(f.carry) || 0)
+    setWallets((prev) => ({ ...prev, [f.currency]: { base, carry } }))
+    notify(t('toast.walletSaved'))
+    closeModal()
+  }
+
   const handleSubmit = (f) => {
-    if (modal === 'expense') addExpense(f)
+    if (modal === 'wallet') saveWallet(f)
+    else if (modal === 'expense') addExpense(f)
     else if (modal === 'income') addIncome(f)
     else if (modal === 'deposit') addDeposit(f)
     else if (modal === 'withdraw') withdraw(f)
@@ -474,13 +526,14 @@ export default function App() {
     setGeneralSavings(initialGeneralSavings)
     setBills(initialBills)
     setSalaryDay(SALARY_DAY)
+    setUserName('')
     notify(t('toast.reset'))
   }
 
   const exportData = async () => {
     const payload = {
       version: 1, exportedAt: new Date().toISOString(),
-      wallets, transactions, goals, generalSavings, bills, salaryDay, exchangeRate, rateMeta,
+      wallets, transactions, goals, generalSavings, bills, salaryDay, userName, exchangeRate, rateMeta,
     }
     await writeBackup(`mizan-backup-${TODAY}.json`, JSON.stringify(payload, null, 2))
     notify(t('toast.exported'))
@@ -500,6 +553,7 @@ export default function App() {
       setGeneralSavings(data.generalSavings || initialGeneralSavings)
       setBills(data.bills)
       if (data.salaryDay) setSalaryDay(data.salaryDay)
+      if (typeof data.userName === 'string') setUserName(data.userName)
       if (Number(data.exchangeRate) > 0) setExchangeRate(Number(data.exchangeRate))
       if (data.rateMeta?.source) setRateMeta(data.rateMeta)
       notify(t('toast.imported'))
@@ -510,7 +564,7 @@ export default function App() {
 
   const screenProps = {
     t, lang, displayCurrency, rate: exchangeRate, totals, walletStats,
-    cycle, cycleTransactions, goals, generalSavings, savingsHistory,
+    cycle, cycleTransactions, transactions, goals, generalSavings, savingsHistory,
     bills, reminders, convert, cv: convert, onPayBill: payBill,
     onOpenModal: openModal, onNavigate: setTab,
   }
@@ -521,12 +575,12 @@ export default function App() {
     { value: 'USD', label: t('currency.USD') },
   ]
 
-  if (!hydrated) {
+  if (!hydrated || !introDone) {
     return (
       <div className="boot-screen">
-        <div className="boot-mark">⚖</div>
-        <strong>ميزان</strong>
-        <span>دفترك المالي، بكل وضوح</span>
+        <BootMark />
+        <strong>{t('app.name')}</strong>
+        <span className="boot-tagline">{t('app.tagline')}</span>
       </div>
     )
   }
@@ -534,8 +588,9 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobileMenu ? 'open' : ''}`}>
+        <button className="drawer-handle" onClick={() => setMobileMenu(false)} aria-label={t('actions.closeMenu')} />
         <div className="brand">
-          <span className="brand-mark"><span className="brand-scale">⚖</span></span>
+          <span className="brand-mark"><img className="brand-scale" src="/mizan-mark.svg" alt="" /></span>
           <div>
             <strong>{t('app.name')}</strong>
             <span>{t('app.tagline')}</span>
@@ -592,6 +647,16 @@ export default function App() {
               />
             </div>
             <div className="settings-row">
+              <span><UserRound size={14} /> {t('misc.yourName')}</span>
+              <input
+                className="name-input"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder={t('misc.namePlaceholder')}
+                aria-label={t('misc.yourName')}
+              />
+            </div>
+            <div className="settings-row">
               <span><Wallet size={14} /> {t('misc.currencyToggle')}</span>
               <Segmented options={curOptions} value={displayCurrency} onChange={setDisplayCurrency} />
             </div>
@@ -635,8 +700,8 @@ export default function App() {
           <button className="reset-btn" onClick={resetData}><RotateCcw size={14} /> {t('actions.reset')}</button>
           <div className="demo-note"><Info size={13} /> {t('misc.localNote')}</div>
           <div className="sidebar-user">
-            <span className="avatar">{lang === 'ar' ? USER.nameAr[0] : USER.nameEn[0]}</span>
-            <div><strong>{lang === 'ar' ? USER.nameAr : USER.nameEn}</strong><span>{t('misc.localData')}</span></div>
+            <span className="avatar">{userName.trim() ? userName.trim()[0] : '⚖'}</span>
+            <div><strong>{userName.trim() || t('misc.yourName')}</strong><span>{t('misc.localData')}</span></div>
           </div>
         </div>
       </aside>
@@ -646,7 +711,7 @@ export default function App() {
           <div className="topbar-left">
             <button className="mobile-menu-btn icon-btn ghost" onClick={() => setMobileMenu(true)} aria-label="menu"><Menu size={20} /></button>
             <div className="greeting">
-              <span>{t('header.greeting')}، {lang === 'ar' ? USER.nameAr : USER.nameEn} 👋</span>
+              <span>{userName.trim() ? `${t('header.greeting')}، ${userName.trim()}` : t('header.greeting')} 👋</span>
               <strong>{formatMoney(totals.remaining, displayCurrency, lang)} <small>{t('overview.remaining')}</small></strong>
             </div>
           </div>
@@ -657,10 +722,12 @@ export default function App() {
         </header>
 
         <main className="content">
-          {tab === 'overview' && <Overview {...screenProps} />}
-          {tab === 'expenses' && <Expenses {...screenProps} />}
-          {tab === 'savings' && <Savings {...screenProps} />}
-          {tab === 'bills' && <Bills {...screenProps} />}
+          <div className="page-transition" key={tab}>
+            {tab === 'overview' && <Overview {...screenProps} />}
+            {tab === 'expenses' && <Expenses {...screenProps} />}
+            {tab === 'savings' && <Savings {...screenProps} />}
+            {tab === 'bills' && <Bills {...screenProps} />}
+          </div>
         </main>
       </div>
 
@@ -676,7 +743,7 @@ export default function App() {
         })}
       </nav>
 
-      {mobileMenu && <div className="mobile-scrim" onClick={() => setMobileMenu(false)} />}
+      <div className={`mobile-scrim ${mobileMenu ? 'open' : ''}`} onClick={() => setMobileMenu(false)} aria-hidden="true" />
 
       {modal && (
         <FormModal

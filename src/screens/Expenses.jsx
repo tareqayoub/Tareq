@@ -2,10 +2,10 @@ import React from 'react'
 import { Plus, ArrowUpRight, Search, SlidersHorizontal, CalendarDays, TrendingUp } from 'lucide-react'
 import { Card, SectionHeader, Segmented, EmptyState, Pill } from '../components/UI'
 import { SpendChart } from '../components/Charts'
-import { formatMoney, formatDate, colorForLabel, daysBetween, groupByDate, convert } from '../utils'
-import { TODAY, monthlyHistory, yearlyHistory } from '../data'
+import { formatMoney, formatDate, colorForLabel, daysBetween, groupByDate, AR_MONTHS, EN_MONTHS } from '../utils'
+import { TODAY } from '../data'
 
-export default function Expenses({ t, lang, displayCurrency, rate, cycle, cycleTransactions, cv, onOpenModal }) {
+export default function Expenses({ t, lang, displayCurrency, rate, cycle, cycleTransactions, transactions = [], cv, onOpenModal }) {
   const [period, setPeriod] = React.useState('daily')
   const [filter, setFilter] = React.useState('all')
   const [query, setQuery] = React.useState('')
@@ -57,21 +57,28 @@ export default function Expenses({ t, lang, displayCurrency, rate, cycle, cycleT
       })
     }
     if (period === 'monthly') {
-      const current = { key: 'current', labelAr: 'تشرين الثاني', labelEn: 'Nov', value: toDisplay(expenses) }
-      return [...monthlyHistory, current].map((m) => ({
-        label: lang === 'ar' ? m.labelAr : m.labelEn,
-        value: cv(m.value, 'SYP', displayCurrency, rate),
-      }))
+      const map = {}
+      transactions.filter((x) => x.type === 'expense').forEach((x) => {
+        const key = x.date.slice(0, 7)
+        map[key] = (map[key] || 0) + cv(x.amount, x.currency, displayCurrency, rate)
+      })
+      const rows = Object.entries(map).sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(-6)
+      const thisMonth = Number(TODAY.split('-')[1]) - 1
+      if (!rows.length) return [{ label: lang === 'ar' ? AR_MONTHS[thisMonth] : EN_MONTHS[thisMonth], value: 0 }]
+      return rows.map(([key, value]) => {
+        const month = Number(key.split('-')[1]) - 1
+        return { label: lang === 'ar' ? AR_MONTHS[month] : EN_MONTHS[month], value }
+      })
     }
-    const currentYear = {
-      key: '2026', labelAr: '2026', labelEn: '2026',
-      value: toDisplay(expenses) + 37200000, // بقية أشهر السنة للعرض التجريبي
-    }
-    return [...yearlyHistory, currentYear].map((m) => ({
-      label: lang === 'ar' ? m.labelAr : m.labelEn,
-      value: cv(m.value, 'SYP', displayCurrency, rate),
-    }))
-  }, [period, expenses, cycle, displayCurrency, rate, cv, lang])
+    const map = {}
+    transactions.filter((x) => x.type === 'expense').forEach((x) => {
+      const key = x.date.slice(0, 4)
+      map[key] = (map[key] || 0) + cv(x.amount, x.currency, displayCurrency, rate)
+    })
+    const rows = Object.entries(map).sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(-5)
+    if (!rows.length) return [{ label: TODAY.slice(0, 4), value: 0 }]
+    return rows.map(([label, value]) => ({ label, value }))
+  }, [period, expenses, cycle, displayCurrency, rate, cv, lang, transactions])
 
   const chartWithAvg = React.useMemo(() => {
     const avg = chartData.reduce((s, d) => s + d.value, 0) / Math.max(1, chartData.length)
