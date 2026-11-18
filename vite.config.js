@@ -7,5 +7,9 @@ export default defineConfig({
   server: {
     port: 4173,
     host: true,
+    watch: {
+      // مجلدات الجوال والملفات الحساسة لا تحتاج مراقبة HMR، وقد تُقفل من Android Studio
+      ignored: ['**/android/**', '**/ios/**', '**/google-services.json', '**/GoogleService-Info.plist'],
+    },
   },
 })

@@ -27,6 +27,10 @@ import {
   getNotificationPermission, requestNotificationPermission,
 } from './services/notifications'
 import { loadCachedRate, fetchExchangeRate, saveManualRate } from './services/exchangeRate'
+import {
+  isFirebaseConfigured, watchAuth, signInWithGoogle, signOutUser,
+  loadRemote, saveRemote, subscribeRemote,
+} from './services/cloud'
 
 const NAV = [
   { id: 'overview', icon: LayoutDashboard, key: 'nav.overview' },
@@ -233,7 +237,36 @@ export default function App() {
   const [mobileMenu, setMobileMenu] = React.useState(false)
   const fileInputRef = React.useRef(null)
 
+  const stateRef = React.useRef(null)
+  const versionRef = React.useRef(Date.now())
+  const echoRef = React.useRef(null)
+  const syncTimerRef = React.useRef(null)
+  const unsubscribeRemoteRef = React.useRef(null)
+  const authUserRef = React.useRef(null)
+
   const t = React.useCallback((key, vars) => translate(lang, key, vars), [lang])
+
+  const applySnapshot = React.useCallback((saved) => {
+    if (!saved) return
+    if (saved.wallets) setWallets(saved.wallets)
+    if (Array.isArray(saved.transactions)) setTransactions(saved.transactions)
+    if (Array.isArray(saved.goals)) setGoals(saved.goals)
+    if (saved.generalSavings) setGeneralSavings(saved.generalSavings)
+    if (Array.isArray(saved.bills)) setBills(saved.bills)
+    if (saved.lang) setLang(saved.lang)
+    if (saved.theme) setTheme(saved.theme)
+    if (saved.displayCurrency) setDisplayCurrency(saved.displayCurrency)
+    if (saved.salaryDay) setSalaryDay(saved.salaryDay)
+    if (typeof saved.userName === 'string') setUserName(saved.userName)
+    if (Number(saved.exchangeRate) > 0) setExchangeRate(Number(saved.exchangeRate))
+    if (saved.rateMeta?.source) setRateMeta(saved.rateMeta)
+  }, [])
+
+  // مرجع سريع للحالة الحالية حتى لا نقرأ قيماً قديمة داخل وعود المزامنة
+  stateRef.current = {
+    wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay,
+    userName, exchangeRate, rateMeta, updatedAt: versionRef.current,
+  }
 
   // تحميل الحالة من التخزين المحلي (Preferences على الجوال / localStorage على الويب)
   React.useEffect(() => {
@@ -264,6 +297,19 @@ export default function App() {
         if (active) setHydrated(true)
       })
     return () => { active = false }
+  }, [applySnapshot])
+
+  // متابعة حالة تسجيل الدخول (محفوظة من الجلسة السابقة على الجهاز)
+  React.useEffect(() => {
+    if (!isFirebaseConfigured) return
+    let active = true
+    const unsubscribe = watchAuth((user) => {
+      if (!active) return
+      authUserRef.current = user
+      setAuthUser(user)
+      setAuthChecked(true)
+    })
+    return () => { active = false; unsubscribe?.() }
   }, [])
 
   // مشهد الافتتاح: نُبقي شاشة الشعار حتى تنتهي حركة تكوّنه ثم نظهر التطبيق
@@ -293,9 +339,14 @@ export default function App() {
     root.dataset.theme = theme
   }, [lang, theme])
 
+  // الحفظ المحلي فوري، ثم دفع السحابة بعد تهدئة قصيرة لتجنب كتابة كل حرف أو نقرة
   React.useEffect(() => {
     if (!hydrated) return
-    saveState({
+    const isEcho = echoRef.current !== null && echoRef.current === versionRef.current
+    if (!isEcho) versionRef.current = Date.now()
+    echoRef.current = null
+    if (stateRef.current) stateRef.current.updatedAt = versionRef.current
+    const snapshot = {
       wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay,
       userName, exchangeRate, rateMeta,
     })
@@ -369,6 +420,34 @@ export default function App() {
   const openModal = (type, data = null) => { setPrefill(data); setModal(type); setMobileMenu(false) }
   const closeModal = () => { setModal(null); setPrefill(null) }
   const notify = (message) => setToast(message)
+
+  const signIn = async () => {
+    setAuthBusy(true)
+    setAuthError('')
+    try {
+      await signInWithGoogle()
+      notify(t('toast.signedIn'))
+    } catch (error) {
+      console.warn('Mizan: Google sign-in failed', error)
+      setAuthError(t('auth.error'))
+    } finally {
+      setAuthBusy(false)
+    }
+  }
+
+  const continueLocally = () => {
+    try { localStorage.setItem(AUTH_DISMISSED_KEY, '1') } catch { /* ignore */ }
+    setAuthDismissed(true)
+  }
+
+  const signOut = async () => {
+    await signOutUser()
+    authUserRef.current = null
+    setAuthUser(null)
+    setSyncReady(false)
+    setSyncStatus('local')
+    notify(t('toast.signedOut'))
+  }
 
   const refreshRate = async () => {
     const meta = await fetchExchangeRate()
@@ -585,6 +664,21 @@ export default function App() {
     )
   }
 
+  // أول فتح: نعرض دعوة تسجيل الدخول قبل الدخول للتطبيق، إلا إن اختار المتابعة محلياً
+  if (isFirebaseConfigured && !authUser && !authDismissed) {
+    return (
+      <AuthScreen
+        t={t}
+        lang={lang}
+        onLang={setLang}
+        onSignIn={signIn}
+        onContinue={continueLocally}
+        busy={authBusy}
+        error={authError}
+      />
+    )
+  }
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobileMenu ? 'open' : ''}`}>
@@ -691,6 +785,18 @@ export default function App() {
                   )}
               </div>
             )}
+            {isFirebaseConfigured && (
+              <div className="settings-row account-row">
+                <span><UserRound size={14} /> {t('sync.account')}</span>
+                {authUser
+                  ? <button className="btn ghost small" onClick={signOut}>{t('sync.signOut')}</button>
+                  : <button className="btn ghost small" onClick={signIn} disabled={authBusy}>{t('sync.signIn')}</button>}
+              </div>
+            )}
+          </div>
+          <div className={`sync-chip ${syncStatus}`} title={authUser?.email || t(`sync.${syncStatus}`)}>
+            {syncStatus === 'offline' ? <CloudOff size={13} /> : <Cloud size={13} />}
+            <span>{t(`sync.${syncStatus}`)}</span>
           </div>
           <div className="backup-row">
             <button className="btn ghost small" onClick={exportData}><Download size={13} /> {t('actions.export')}</button>

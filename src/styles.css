@@ -354,6 +354,16 @@ h1, h2, h3, h4, p { margin: 0; }
 .reset-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 14px; padding: 9px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); color: #c4d9d0; font-size: 11.5px; }
 .reset-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
 .demo-note { display: flex; gap: 7px; align-items: flex-start; font-size: 10px; line-height: 1.5; color: #7fa698; padding: 12px 4px 4px; }
+.sync-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px; padding: 5px 10px; border-radius: 99px;
+  font-size: 10px; color: #a9c6b9; background: rgba(255,255,255,.05);
+}
+.sync-chip.saved { color: #7fd1a8; }
+.sync-chip.syncing, .sync-chip.checking { color: #e8d9b8; }
+.sync-chip.offline { color: #e8a06f; }
+.sync-chip.error { color: #ef8b7d; }
+.account-row .btn { font-size: 10px; padding: 4px 8px; }
 .sidebar-user { display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 14px; margin-top: 8px; }
 .avatar { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(145deg, var(--mint), #8ec7aa); color: var(--forest-deep); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
 .sidebar-user strong { display: block; font-size: 12px; }

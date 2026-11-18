@@ -46,7 +46,43 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Configure Firebase for Android
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'EOF'
+            {
+              "project_info": {
+                "project_number": "000000000000",
+                "project_id": "mizan-placeholder",
+                "storage_bucket": "mizan-placeholder.firebasestorage.app"
+              },
+              "client": [
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                    "android_client_info": { "package_name": "com.mizan.app" }
+                  },
+                  "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }],
+                  "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+                }
+              ],
+              "configuration_version": "1"
+            }
+            EOF
+          fi
+
       - name: Build web app and sync Android
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: |
           npm run build
           npx cap sync android

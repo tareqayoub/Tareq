@@ -12,10 +12,13 @@
     "ios": "npm run cap:sync && cap open ios"
   },
   "dependencies": {
+    "@capacitor-firebase/app": "^8.6.0",
+    "@capacitor-firebase/authentication": "^8.6.0",
     "@capacitor/core": "^8.6.2",
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^8.0.1",
+    "firebase": "^12.19.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

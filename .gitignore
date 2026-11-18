@@ -3,6 +3,13 @@ dist/
 .vite/
 *.log
 .DS_Store
+.env
+.env.local
+.env.*.local
+
+# مفاتيح Firebase لا ترفع إلى المستودع
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
 
 # Android (يُعاد توليدها عبر cap sync)
 android/.gradle/

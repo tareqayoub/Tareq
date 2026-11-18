@@ -1,5 +1,10 @@
 {
   "appId": "com.mizan.app",
   "appName": "Mizan",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "providers": ["google.com"]
+    }
+  }
 }
