@@ -83,6 +83,10 @@ jobs:
         working-directory: android
         run: chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon
 
+      - name: Show debug signing SHA-1
+        run: |
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android 2>/dev/null | grep 'SHA1:' || true
+
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
