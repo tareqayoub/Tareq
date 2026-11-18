@@ -3,11 +3,13 @@ import {
   LayoutDashboard, ReceiptText, PiggyBank, CalendarDays, Bell,
   Sun, Moon, Languages, RotateCcw, Wallet, Check, Sparkles, Menu, X,
   ArrowUpRight, ArrowDownRight, Settings2, Info, Download, Upload, CalendarRange, RefreshCw, UserRound,
+  Cloud, CloudOff,
 } from 'lucide-react'
 import {
   Card, Pill, Segmented, Field, Modal, Toast, IconButton,
 } from './components/UI'
 import BootMark from './components/BootMark'
+import AuthScreen from './components/AuthScreen'
 import Overview from './screens/Overview'
 import Expenses from './screens/Expenses'
 import Savings from './screens/Savings'
@@ -63,6 +65,21 @@ const INITIAL_FORM = {
   icon: 'target',
   base: '',
   carry: '',
+}
+
+const AUTH_DISMISSED_KEY = 'mizan-auth-dismissed'
+
+/** هل أُدخل المستخدم بياناتاً فعلية؟ يُستخدم لتجنب كتابة نسخة فارغة فوق نسخة سحابية موجودة */
+function hasUserData(s) {
+  if (!s) return false
+  if (Array.isArray(s.transactions) && s.transactions.length) return true
+  if (Array.isArray(s.goals) && s.goals.length) return true
+  if (Array.isArray(s.bills) && s.bills.length) return true
+  if (typeof s.userName === 'string' && s.userName.trim()) return true
+  const currencies = ['SYP', 'USD']
+  if (s.generalSavings && currencies.some((c) => Number(s.generalSavings[c]) > 0)) return true
+  if (s.wallets && currencies.some((c) => Number(s.wallets[c]?.base) > 0 || Number(s.wallets[c]?.carry) > 0)) return true
+  return false
 }
 
 function FormModal({ type, prefill, goals, generalSavings, t, lang, rate, onClose, onSubmit }) {
@@ -230,6 +247,18 @@ export default function App() {
   )
   const [hydrated, setHydrated] = React.useState(false)
   const [introDone, setIntroDone] = React.useState(false)
+
+  const [authUser, setAuthUser] = React.useState(null)
+  const [authChecked, setAuthChecked] = React.useState(!isFirebaseConfigured)
+  const [authBusy, setAuthBusy] = React.useState(false)
+  const [authError, setAuthError] = React.useState('')
+  const [authDismissed, setAuthDismissed] = React.useState(() => {
+    try { return localStorage.getItem(AUTH_DISMISSED_KEY) === '1' } catch { return false }
+  })
+  const [syncReady, setSyncReady] = React.useState(!isFirebaseConfigured)
+  const [syncStatus, setSyncStatus] = React.useState(isFirebaseConfigured ? 'checking' : 'local')
+  const [online, setOnline] = React.useState(typeof navigator === 'undefined' ? true : navigator.onLine)
+
   const [tab, setTab] = React.useState('overview')
   const [modal, setModal] = React.useState(null)
   const [prefill, setPrefill] = React.useState(null)
@@ -275,18 +304,8 @@ export default function App() {
       .then(([saved, cachedRate, permission]) => {
         if (!active) return
         if (saved) {
-          if (saved.wallets) setWallets(saved.wallets)
-          if (Array.isArray(saved.transactions)) setTransactions(saved.transactions)
-          if (Array.isArray(saved.goals)) setGoals(saved.goals)
-          if (saved.generalSavings) setGeneralSavings(saved.generalSavings)
-          if (Array.isArray(saved.bills)) setBills(saved.bills)
-          if (saved.lang) setLang(saved.lang)
-          if (saved.theme) setTheme(saved.theme)
-          if (saved.displayCurrency) setDisplayCurrency(saved.displayCurrency)
-          if (saved.salaryDay) setSalaryDay(saved.salaryDay)
-          if (saved.userName) setUserName(saved.userName)
-          if (Number(saved.exchangeRate) > 0) setExchangeRate(Number(saved.exchangeRate))
-          if (saved.rateMeta?.source) setRateMeta(saved.rateMeta)
+          applySnapshot(saved)
+          if (Number(saved.updatedAt) > 0) versionRef.current = Number(saved.updatedAt)
         } else {
           setExchangeRate(cachedRate.rate)
           setRateMeta(cachedRate)
@@ -312,13 +331,73 @@ export default function App() {
     return () => { active = false; unsubscribe?.() }
   }, [])
 
+  // متابعة الاتصال بالإنترنت لاستئناف المزامنة تلقائياً عند عودة الشبكة
+  React.useEffect(() => {
+    const update = () => setOnline(typeof navigator === 'undefined' ? true : navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
   // مشهد الافتتاح: نُبقي شاشة الشعار حتى تنتهي حركة تكوّنه ثم نظهر التطبيق
   React.useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || !authChecked) return
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const timer = setTimeout(() => setIntroDone(true), reduced ? 600 : 4400)
     return () => clearTimeout(timer)
-  }, [hydrated])
+  }, [hydrated, authChecked])
+
+  // عند تسجيل الدخول: تُستعاد نسخة السحابة إن كانت أحدث، أو تُرفع النسخة المحلية إن كانت هي الأحدث
+  const cloudUid = authUser?.uid
+  React.useEffect(() => {
+    if (!cloudUid) {
+      setSyncReady(false)
+      setSyncStatus('local')
+      return
+    }
+    let active = true
+    setSyncReady(false)
+    setSyncStatus('syncing')
+    ;(async () => {
+      try {
+        const remote = await loadRemote(cloudUid)
+        if (!active) return
+        const local = stateRef.current
+        const localVersion = Number(local?.updatedAt) || 0
+        if (remote && (!hasUserData(local) || remote.updatedAt > localVersion)) {
+          echoRef.current = remote.updatedAt
+          versionRef.current = remote.updatedAt
+          applySnapshot(remote.state)
+        } else {
+          const version = localVersion || Date.now()
+          await saveRemote(cloudUid, { ...local, updatedAt: version }, version)
+          echoRef.current = version
+        }
+        if (!active) return
+        setSyncReady(true)
+        setSyncStatus(navigator.onLine ? 'saved' : 'offline')
+        unsubscribeRemoteRef.current = subscribeRemote(cloudUid, (incoming) => {
+          if (!incoming || incoming.updatedAt <= versionRef.current) return
+          echoRef.current = incoming.updatedAt
+          versionRef.current = incoming.updatedAt
+          applySnapshot(incoming.state)
+        })
+      } catch (error) {
+        console.warn('Mizan: cloud load failed', error)
+        if (!active) return
+        setSyncReady(true)
+        setSyncStatus(navigator.onLine ? 'error' : 'offline')
+      }
+    })()
+    return () => {
+      active = false
+      unsubscribeRemoteRef.current?.()
+      unsubscribeRemoteRef.current = null
+    }
+  }, [cloudUid, applySnapshot])
 
   // تحديث سعر الصرف من الشبكة عند الإقلاع (مع الرجوع لآخر سعر محفوظ عند الفشل)
   React.useEffect(() => {
@@ -348,9 +427,30 @@ export default function App() {
     if (stateRef.current) stateRef.current.updatedAt = versionRef.current
     const snapshot = {
       wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay,
-      userName, exchangeRate, rateMeta,
-    })
-  }, [hydrated, wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay, userName, exchangeRate, rateMeta])
+      userName, exchangeRate, rateMeta, updatedAt: versionRef.current,
+    }
+    saveState(snapshot)
+
+    if (!isFirebaseConfigured || !authUser || !syncReady) return
+    if (!online) {
+      setSyncStatus('offline')
+      return
+    }
+    const uid = authUser.uid
+    const version = versionRef.current
+    setSyncStatus('syncing')
+    clearTimeout(syncTimerRef.current)
+    syncTimerRef.current = setTimeout(async () => {
+      try {
+        await saveRemote(uid, snapshot, version)
+        if (authUserRef.current?.uid === uid && versionRef.current === version) setSyncStatus('saved')
+      } catch (error) {
+        console.warn('Mizan: cloud push failed', error)
+        if (authUserRef.current?.uid === uid) setSyncStatus('error')
+      }
+    }, 900)
+    return () => clearTimeout(syncTimerRef.current)
+  }, [hydrated, wallets, transactions, goals, generalSavings, bills, lang, theme, displayCurrency, salaryDay, userName, exchangeRate, rateMeta, authUser, syncReady, online])
 
   // إعادة جدولة تنبيهات الفواتير والديون عند أي تغيير
   React.useEffect(() => {
@@ -654,7 +754,7 @@ export default function App() {
     { value: 'USD', label: t('currency.USD') },
   ]
 
-  if (!hydrated || !introDone) {
+  if (!hydrated || !authChecked || !introDone) {
     return (
       <div className="boot-screen">
         <BootMark />
@@ -807,7 +907,7 @@ export default function App() {
           <div className="demo-note"><Info size={13} /> {t('misc.localNote')}</div>
           <div className="sidebar-user">
             <span className="avatar">{userName.trim() ? userName.trim()[0] : '⚖'}</span>
-            <div><strong>{userName.trim() || t('misc.yourName')}</strong><span>{t('misc.localData')}</span></div>
+            <div><strong>{userName.trim() || t('misc.yourName')}</strong><span>{authUser?.email || t('misc.localData')}</span></div>
           </div>
         </div>
       </aside>

@@ -1,6 +1,30 @@
 export const dict = {
   ar: {
     app: { name: 'ميزان', tagline: 'دفترك المالي، بوضوح تام' },
+    auth: {
+      title: 'مرحباً بك في ميزان',
+      subtitle: 'سجّل الدخول بحساب Google كي تُحفظ بياناتك وتنتقل معك بين أجهزتك.',
+      featureSync: 'مزامنة تلقائية بين أجهزتك',
+      featurePrivate: 'بياناتك محفوظة لحسابك وحدك',
+      signIn: 'المتابعة بحساب Google',
+      loading: 'جارٍ تسجيل الدخول…',
+      or: 'أو',
+      local: 'المتابعة بدون حساب',
+      note: 'ستُحفظ بياناتك على هذا الجهاز، ويمكنك تسجيل الدخول في أي وقت من الإعدادات.',
+      error: 'تعذّر تسجيل الدخول. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.',
+    },
+    sync: {
+      account: 'الحساب',
+      signIn: 'تسجيل الدخول',
+      signOut: 'تسجيل الخروج',
+      checking: 'جارٍ التحقق من الحساب…',
+      local: 'حفظ محلي',
+      syncing: 'جارٍ المزامنة…',
+      saved: 'تمت المزامنة',
+      offline: 'بانتظار الاتصال',
+      error: 'تعذّرت المزامنة',
+      cloudNote: 'تُحفظ بياناتك تلقائياً في حسابك، وتُستعاد عند إعادة تثبيت التطبيق.',
+    },
     nav: { overview: 'المعلومات الأساسية', expenses: 'النفقات', savings: 'المدخرات', bills: 'الفواتير والديون' },
     header: {
       greeting: 'مرحباً',
@@ -158,6 +182,8 @@ export const dict = {
       notificationsOn: 'تمّ تفعيل الإشعارات',
       notificationsOff: 'تعذّر تفعيل الإشعارات',
       walletSaved: 'تمّ حفظ رصيد المحفظة',
+      signedIn: 'تمّ تسجيل الدخول واستعادة بياناتك',
+      signedOut: 'تمّ تسجيل الخروج — البيانات محفوظة على الجهاز',
     },
     misc: {
       rate: 'سعر الصرف',
@@ -177,7 +203,7 @@ export const dict = {
       reset: 'إعادة تعيين',
       demoData: 'بيانات تجريبية',
       demoNote: 'هذا عرض تجريبي للواجهة — جميع الأرقام افتراضية',
-      localNote: 'تُحفظ جميع بياناتك على جهازك — دون سحابة',
+      localNote: 'تُحفظ بياناتك على جهازك، وتُزامن مع حسابك عند تسجيل الدخول.',
       localData: 'بياناتك المحلية',
       noResults: 'لا توجد نتائج',
       today: 'اليوم',
@@ -387,6 +413,8 @@ export const dict = {
       notificationsOn: 'Notifications enabled',
       notificationsOff: 'Could not enable notifications',
       walletSaved: 'Wallet balance saved',
+      signedIn: 'Signed in — your data has been restored',
+      signedOut: 'Signed out — data is still saved on this device',
     },
     misc: {
       rate: 'Exchange rate',
