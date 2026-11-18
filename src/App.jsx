@@ -67,8 +67,6 @@ const INITIAL_FORM = {
   carry: '',
 }
 
-const AUTH_DISMISSED_KEY = 'mizan-auth-dismissed'
-
 /** هل أُدخل المستخدم بياناتاً فعلية؟ يُستخدم لتجنب كتابة نسخة فارغة فوق نسخة سحابية موجودة */
 function hasUserData(s) {
   if (!s) return false
@@ -252,9 +250,6 @@ export default function App() {
   const [authChecked, setAuthChecked] = React.useState(!isFirebaseConfigured)
   const [authBusy, setAuthBusy] = React.useState(false)
   const [authError, setAuthError] = React.useState('')
-  const [authDismissed, setAuthDismissed] = React.useState(() => {
-    try { return localStorage.getItem(AUTH_DISMISSED_KEY) === '1' } catch { return false }
-  })
   const [syncReady, setSyncReady] = React.useState(!isFirebaseConfigured)
   const [syncStatus, setSyncStatus] = React.useState(isFirebaseConfigured ? 'checking' : 'local')
   const [online, setOnline] = React.useState(typeof navigator === 'undefined' ? true : navigator.onLine)
@@ -535,11 +530,6 @@ export default function App() {
     }
   }
 
-  const continueLocally = () => {
-    try { localStorage.setItem(AUTH_DISMISSED_KEY, '1') } catch { /* ignore */ }
-    setAuthDismissed(true)
-  }
-
   const signOut = async () => {
     await signOutUser()
     authUserRef.current = null
@@ -764,15 +754,14 @@ export default function App() {
     )
   }
 
-  // أول فتح: نعرض دعوة تسجيل الدخول قبل الدخول للتطبيق، إلا إن اختار المتابعة محلياً
-  if (isFirebaseConfigured && !authUser && !authDismissed) {
+  // نعرض شاشة تسجيل الدخول قبل الدخول للتطبيق دائماً ما لم يكن المستخدم مسجّلاً
+  if (isFirebaseConfigured && !authUser) {
     return (
       <AuthScreen
         t={t}
         lang={lang}
         onLang={setLang}
         onSignIn={signIn}
-        onContinue={continueLocally}
         busy={authBusy}
         error={authError}
       />

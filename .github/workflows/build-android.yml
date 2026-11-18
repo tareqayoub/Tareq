@@ -56,14 +56,22 @@ jobs:
             printf '%s' '{"project_info":{"project_number":"000000000000","project_id":"mizan-placeholder","storage_bucket":"mizan-placeholder.firebasestorage.app"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.mizan.app"}},"api_key":[{"current_key":"AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > android/app/google-services.json
           fi
 
-      - name: Build web app and sync Android
+      - name: Load Firebase config from MIZAN secret
         env:
+          MIZAN: ${{ secrets.MIZAN }}
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: |
+          if [ -n "$MIZAN" ]; then
+            printf '%s' 'Y29uc3QgcyA9IHByb2Nlc3MuZW52Lk1JWkFOIHx8ICcnOwpjb25zdCBxID0gU3RyaW5nLmZyb21DaGFyQ29kZSgzOSk7CmNvbnN0IGQgPSBTdHJpbmcuZnJvbUNoYXJDb2RlKDM0KTsKY29uc3QgY2xzID0gJ1snICsgZCArIHEgKyAnXSc7CmNvbnN0IG1hcCA9IHsKICBWSVRFX0ZJUkVCQVNFX0FQSV9LRVk6IFsnVklURV9GSVJFQkFTRV9BUElfS0VZJywgJ2FwaUtleSddLAogIFZJVEVfRklSRUJBU0VfQVVUSF9ET01BSU46IFsnVklURV9GSVJFQkFTRV9BVVRIX0RPTUFJTicsICdhdXRoRG9tYWluJ10sCiAgVklURV9GSVJFQkFTRV9QUk9KRUNUX0lEOiBbJ1ZJVEVfRklSRUJBU0VfUFJPSkVDVF9JRCcsICdwcm9qZWN0SWQnXSwKICBWSVRFX0ZJUkVCQVNFX1NUT1JBR0VfQlVDS0VUOiBbJ1ZJVEVfRklSRUJBU0VfU1RPUkFHRV9CVUNLRVQnLCAnc3RvcmFnZUJ1Y2tldCddLAogIFZJVEVfRklSRUJBU0VfTUVTU0FHSU5HX1NFTkRFUl9JRDogWydWSVRFX0ZJUkVCQVNFX01FU1NBR0lOR19TRU5ERVJfSUQnLCAnbWVzc2FnaW5nU2VuZGVySWQnXSwKICBWSVRFX0ZJUkVCQVNFX0FQUF9JRDogWydWSVRFX0ZJUkVCQVNFX0FQUF9JRCcsICdhcHBJZCddLAp9Owpmb3IgKGNvbnN0IFtvdXQsIG5hbWVzXSBvZiBPYmplY3QuZW50cmllcyhtYXApKSB7CiAgaWYgKHByb2Nlc3MuZW52W291dF0pIGNvbnRpbnVlOwogIGZvciAoY29uc3QgbiBvZiBuYW1lcykgewogICAgbGV0IG0gPSBzLm1hdGNoKG5ldyBSZWdFeHAoY2xzICsgJz8nICsgbiArIGNscyArICc/XFxzKls6PV1cXHMqJyArIGNscyArICcoW14nICsgZCArIHEgKyAnXSspJyArIGNscykpOwogICAgaWYgKCFtKSBtID0gcy5tYXRjaChuZXcgUmVnRXhwKCdcXGInICsgbiArICdcXHMqPVxccyooW15cXHMsO10rKScpKTsKICAgIGlmIChtKSB7IGNvbnNvbGUubG9nKG91dCArICc9JyArIG1bMV0pOyBicmVhazsgfQogIH0KfQ==' | base64 -d > /tmp/mizan-env.cjs
+            MIZAN="$MIZAN" node /tmp/mizan-env.cjs >> "$GITHUB_ENV"
+          fi
+
+      - name: Build web app and sync Android
         run: |
           npm run build
           npx cap sync android

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowLeft, Cloud, ShieldCheck } from 'lucide-react'
+import { Cloud, ShieldCheck } from 'lucide-react'
 import { Segmented } from './UI'
 
 const GOOGLE_ICON = (
@@ -12,7 +12,7 @@ const GOOGLE_ICON = (
 )
 
 /** أول فتح للتطبيق: دعوة لتسجيل الدخول بحساب Google مع إمكانية المتابعة محلياً */
-export default function AuthScreen({ t, lang, onLang, onSignIn, onContinue, busy, error }) {
+export default function AuthScreen({ t, lang, onLang, onSignIn, busy, error }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -42,11 +42,6 @@ export default function AuthScreen({ t, lang, onLang, onSignIn, onContinue, busy
         </button>
         {error && <p className="auth-error" role="alert">{error}</p>}
 
-        <div className="auth-divider"><span>{t('auth.or')}</span></div>
-
-        <button className="auth-local" onClick={onContinue} disabled={busy}>
-          {t('auth.local')} <ArrowLeft size={15} />
-        </button>
         <p className="auth-note">{t('auth.note')}</p>
       </div>
     </div>
