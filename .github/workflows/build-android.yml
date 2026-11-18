@@ -83,9 +83,16 @@ jobs:
         working-directory: android
         run: chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon
 
+      - name: Install stable debug keystore
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.MIZAN_DEBUG_KEYSTORE_B64 }}
+        run: |
+          mkdir -p "$HOME/.android"
+          printf '%s' "$DEBUG_KEYSTORE_B64" | base64 -d > "$HOME/.android/debug.keystore"
+
       - name: Show debug signing SHA-1
         run: |
-          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android 2>/dev/null | grep 'SHA1:' || true
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep 'SHA1:'
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
